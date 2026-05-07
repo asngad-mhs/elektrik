@@ -8,7 +8,14 @@ import {
   FolderOpen,
   XCircle,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Tv,
+  Refrigerator,
+  WashingMachine,
+  Laptop,
+  Wrench,
+  Plug,
+  Cable
 } from 'lucide-react';
 
 const ADMIN_WA = "6289670924182";
@@ -257,12 +264,17 @@ export default function App() {
                   
                   <form onSubmit={handleServiceSubmit} className="space-y-6">
                       <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Jenis Masalah</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Jenis Layanan & Perbaikan</label>
                           <select value={serviceForm.type} onChange={e => setServiceForm({...serviceForm, type: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-300 focus:-translate-y-1 focus:shadow-md">
                               <option value="Perbaikan">Listrik Padam / Konsleting</option>
                               <option value="Pasang Baru">Pemasangan KWH Baru</option>
                               <option value="Instalasi">Instalasi Kabel / Titik Lampu</option>
                               <option value="Tambah Daya">Permohonan Tambah Daya</option>
+                              <option value="Service TV">Service TV</option>
+                              <option value="Service Kulkas">Service Kulkas</option>
+                              <option value="Service Mesin Cuci">Service Mesin Cuci</option>
+                              <option value="Service Laptop">Service Laptop</option>
+                              <option value="Elektronik Lainnya">Barang Elektronik Lainnya</option>
                           </select>
                       </div>
                       <div className="space-y-1">
