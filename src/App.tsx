@@ -214,10 +214,6 @@ export default function App() {
               )}
               {currentUser && (
                 <div className="flex items-center gap-2 md:gap-3">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-xs font-black uppercase leading-none">{currentUser.name}</p>
-                        <p className="text-[9px] opacity-80">Pelanggan Terverifikasi</p>
-                    </div>
                     <button onClick={handleLogout} className="bg-yellow-600 p-2 md:p-2.5 rounded-lg hover:bg-yellow-700 transition" aria-label="Logout">
                         <LogOut className="h-4 w-4 md:h-5 md:w-5" />
                     </button>
