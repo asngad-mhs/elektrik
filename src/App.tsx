@@ -307,29 +307,34 @@ export default function App() {
                 </button>
               )}
               {currentUser && (
-                <div className="flex items-center gap-2 md:gap-3">
-                    <button onClick={handleLogout} className="bg-yellow-600 p-2 md:p-2.5 rounded-lg hover:bg-yellow-700 transition" aria-label="Logout">
-                        <LogOut className="h-4 w-4 md:h-5 md:w-5" />
+                <div className="flex items-center gap-2 md:gap-3 bg-yellow-600/50 px-3 py-1.5 rounded-full">
+                    <div className="hidden sm:block text-right">
+                        <div className="text-[11px] font-bold leading-tight">{currentUser.name}</div>
+                        <div className="text-[9px] text-yellow-200">{currentUser.phone}</div>
+                    </div>
+                    <UserCheck className="h-4 w-4 sm:hidden" />
+                    <button onClick={handleLogout} className="p-1 sm:p-1.5 rounded-lg hover:bg-yellow-700 transition w-full sm:w-auto" aria-label="Logout">
+                        <LogOut className="h-4 w-4" />
                     </button>
                 </div>
               )}
             </div>
             
-            {isAdmin && <div className="bg-red-600 px-2 py-1 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold animate-pulse absolute left-1/2 -translate-x-1/2">ADMIN</div>}
+            {isAdmin && <div className="bg-red-600 px-2 py-1 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold animate-pulse absolute left-1/2 -translate-x-1/2 top-[18px]">ADMIN</div>}
         </div>
       </nav>
 
       {/* Stepper */}
-      <div className="bg-white border-b sticky top-[68px] z-40 shadow-sm overflow-x-auto no-scrollbar">
-        <div className="container mx-auto flex justify-start md:justify-center px-4 md:px-0 min-w-max gap-2 md:gap-8 text-[11px] md:text-sm font-black uppercase tracking-tight md:tracking-tighter text-slate-400">
+      <div className="bg-white border-b sticky top-[72px] md:top-[80px] z-40 shadow-sm overflow-x-auto no-scrollbar w-full flex-none">
+        <div className="container mx-auto flex justify-start sm:justify-center px-4 md:px-0 w-full gap-2 sm:gap-4 md:gap-8 text-[10px] sm:text-[11px] md:text-sm font-black uppercase tracking-tight md:tracking-tighter text-slate-400">
             {!currentUser && (
-              <button onClick={() => setActiveTab('auth')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${activeTab === 'auth' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : 'hover:text-slate-600'}`}>1. Masuk / Daftar</button>
+              <button onClick={() => setActiveTab('auth')} className={`flex-shrink-0 py-3 sm:py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${activeTab === 'auth' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : 'hover:text-slate-600'}`}>1. Masuk / Daftar</button>
             )}
-            <button onClick={() => currentUser && setActiveTab('service')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'service' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>2. Pengajuan</button>
-            <button onClick={() => currentUser && setActiveTab('calc')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'calc' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>3. Cek Harga</button>
-            <button onClick={() => currentUser && setActiveTab('payment')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'payment' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>4. Bayar</button>
+            <button onClick={() => currentUser && setActiveTab('service')} className={`flex-shrink-0 py-3 sm:py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'service' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>2. Pengajuan</button>
+            <button onClick={() => currentUser && setActiveTab('calc')} className={`flex-shrink-0 py-3 sm:py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'calc' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>3. Cek Harga</button>
+            <button onClick={() => currentUser && setActiveTab('payment')} className={`flex-shrink-0 py-3 sm:py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'payment' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>4. Bayar</button>
             {isAdmin && (
-              <button onClick={() => setActiveTab('history')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors text-red-500 hover:text-red-700 ${activeTab === 'history' ? 'border-b-[3px] border-red-500 text-red-600' : ''}`}>Admin Panel</button>
+              <button onClick={() => setActiveTab('history')} className={`flex-shrink-0 py-3 sm:py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors text-red-500 hover:text-red-700 ${activeTab === 'history' ? 'border-b-[3px] border-red-500 text-red-600' : ''}`}>Admin Panel</button>
             )}
         </div>
       </div>
