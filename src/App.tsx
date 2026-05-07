@@ -184,10 +184,15 @@ export default function App() {
       {/* Navbar */}
       <nav className="bg-yellow-500 p-4 text-white shadow-lg sticky top-0 z-50">
         <div className="container mx-auto flex justify-between items-center px-2 md:px-0">
-            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 md:gap-3 cursor-pointer select-none" onClick={handleAdminTitleClick}>
-                <img src="/logo.png" alt="Sinar Elektrik Utama Logo" className="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover bg-white shadow-sm border border-yellow-400/50" />
-                ELEKTRIK
-            </h1>
+            <div className="flex items-center gap-2 md:gap-3">
+              <a href="#" className="shrink-0 transition-transform hover:scale-105">
+                <img src="/6e0c5381-0d5b-4f5b-910f-e3ce19497633.png" alt="Elektrik Logo" className="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover bg-white shadow-sm border border-yellow-400/50" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                <Zap className="h-8 w-8 md:h-10 md:w-10 hidden bg-white text-yellow-500 rounded-full p-1.5 shadow-sm border border-yellow-400/50" fill="currentColor" />
+              </a>
+              <h1 className="text-xl md:text-2xl font-bold cursor-pointer select-none" onClick={handleAdminTitleClick}>
+                  ELEKTRIK
+              </h1>
+            </div>
             
             {currentUser && (
               <div className="flex items-center gap-2 md:gap-3">
