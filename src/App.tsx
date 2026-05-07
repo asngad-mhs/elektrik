@@ -16,7 +16,8 @@ import {
   Wrench,
   Plug,
   Cable,
-  Bell
+  Bell,
+  Settings
 } from 'lucide-react';
 
 const ADMIN_WA = "6289670924182";
@@ -114,6 +115,12 @@ export default function App() {
 
     setTimeout(() => {
       localStorage.setItem('last_request', JSON.stringify(req));
+      
+      const existing = localStorage.getItem('elektrik_requests');
+      const requests = existing ? JSON.parse(existing) : [];
+      requests.unshift(req);
+      localStorage.setItem('elektrik_requests', JSON.stringify(requests));
+
       displayToast("Pengajuan Tersimpan!");
       setActiveTab('calc');
       setIsSubmittingService(false);
@@ -175,18 +182,40 @@ export default function App() {
   };
 
   // Mock remote fetch since google sheets logic was requested
+  const markAsDone = (id: string) => {
+    const existing = localStorage.getItem('elektrik_requests');
+    if (existing) {
+      let requests = JSON.parse(existing);
+      requests = requests.map((r: any) => r.id === id ? { ...r, status: 'Selesai' } : r);
+      localStorage.setItem('elektrik_requests', JSON.stringify(requests));
+      setServiceRequests(requests);
+    }
+  };
+
+  const deleteRequest = (id: string) => {
+    if(window.confirm("Hapus permintaan ini?")) {
+      const existing = localStorage.getItem('elektrik_requests');
+      if (existing) {
+        let requests = JSON.parse(existing);
+        requests = requests.filter((r: any) => r.id !== id);
+        localStorage.setItem('elektrik_requests', JSON.stringify(requests));
+        setServiceRequests(requests);
+      }
+    }
+  };
+
   const fetchFromRemote = () => {
     // using local storage as mock backend since we don't have sheets
-    const req = localStorage.getItem('last_request');
-    if (req) {
-      setServiceRequests([JSON.parse(req)]);
+    const existing = localStorage.getItem('elektrik_requests');
+    if (existing) {
+      setServiceRequests(JSON.parse(existing));
     } else {
       setServiceRequests([]);
     }
   };
 
   const totalKwh = deviceData.reduce((acc, item) => acc + ((item.watt * item.hours * 30) / 1000), 0);
-  const pendingCount = (isAdmin && serviceRequests.length > 0) ? serviceRequests.length : (localStorage.getItem('last_request') ? 1 : 0);
+  const pendingCount = isAdmin ? serviceRequests.filter(r => r.status === 'Menunggu Respon Admin').length : 0;
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans text-slate-800 selection:bg-yellow-200 flex flex-col">
@@ -198,9 +227,12 @@ export default function App() {
                 <img src="/6e0c5381-0d5b-4f5b-910f-e3ce19497633.png" alt="Elektrik Logo" className="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover bg-white shadow-sm border border-yellow-400/50" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
                 <Zap className="h-8 w-8 md:h-10 md:w-10 hidden bg-white text-yellow-500 rounded-full p-1.5 shadow-sm border border-yellow-400/50" fill="currentColor" />
               </a>
-              <h1 className="text-xl md:text-2xl font-bold cursor-pointer select-none" onClick={handleAdminTitleClick}>
+              <h1 className="text-xl md:text-2xl font-bold select-none">
                   ELEKTRIK
               </h1>
+              <button onClick={handleAdminTitleClick} className="p-1 md:p-2 opacity-10 hover:opacity-100 transition" aria-label="Settings">
+                  <Settings className="h-4 w-4 md:h-5 md:w-5" />
+              </button>
             </div>
             
             <div className="flex items-center gap-3">
@@ -384,9 +416,21 @@ export default function App() {
                         <h4 className="font-black text-slate-800 uppercase mb-1">{r.name}</h4>
                         <p className="text-xs text-slate-600 font-medium mb-3">{r.type}</p>
                         <p className="text-[10px] text-slate-500 mb-5 leading-relaxed">{r.address}</p>
-                        <a href={`https://wa.me/${r.phone?.replace(/^0/, '62')}`} target="_blank" rel="noreferrer" className="block w-full bg-green-500 hover:bg-green-600 transition text-white text-center py-3 rounded-xl text-[10px] font-bold shadow-md">
-                          RESPON SEKARANG
-                        </a>
+                        <div className="flex flex-col gap-2">
+                          <a href={`https://wa.me/${r.phone?.replace(/^0/, '62')}`} target="_blank" rel="noreferrer" className="block w-full bg-green-500 hover:bg-green-600 transition text-white text-center py-3 rounded-xl text-[10px] font-bold shadow-md">
+                            RESPON SEKARANG
+                          </a>
+                          <div className="flex gap-2">
+                            {r.status !== 'Selesai' && (
+                              <button onClick={() => markAsDone(r.id)} className="flex-1 bg-yellow-500 hover:bg-yellow-600 transition text-white text-center py-2 rounded-xl text-[10px] font-bold shadow-md">
+                                SELESAI
+                              </button>
+                            )}
+                            <button onClick={() => deleteRequest(r.id)} className="flex-1 bg-red-100 hover:bg-red-200 transition text-red-600 text-center py-2 rounded-xl text-[10px] font-bold shadow-sm">
+                              HAPUS
+                            </button>
+                          </div>
+                        </div>
                     </div>
                   ))}
               </div>
