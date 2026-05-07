@@ -17,7 +17,15 @@ import {
   Plug,
   Cable,
   Bell,
-  Settings
+  Settings,
+  Pencil,
+  Trash2,
+  Eye,
+  CreditCard,
+  QrCode,
+  Wallet,
+  Landmark,
+  UploadCloud
 } from 'lucide-react';
 
 const ADMIN_WA = "6289670924182";
@@ -31,6 +39,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('auth');
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminClickCount, setAdminClickCount] = useState(0);
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
   
   const [toastMsg, setToastMsg] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -40,6 +49,9 @@ export default function App() {
   const [serviceForm, setServiceForm] = useState({ type: 'Perbaikan', address: '' });
   const [isSubmittingService, setIsSubmittingService] = useState(false);
   const [calcForm, setCalcForm] = useState({ device: '', watt: '', hours: '' });
+  
+  const [paymentForm, setPaymentForm] = useState({ method: 'qris', name: '', amount: '', fileName: '' });
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   
   const [adminLogin, setAdminLogin] = useState({ user: '', pass: '' });
 
@@ -53,6 +65,7 @@ export default function App() {
     if (storedDevices) {
       setDeviceData(JSON.parse(storedDevices));
     }
+    fetchFromRemote();
   }, []);
 
   useEffect(() => {
@@ -104,26 +117,39 @@ export default function App() {
     e.preventDefault();
     setIsSubmittingService(true);
     
-    const req = {
-      id: 'TRX-' + Date.now().toString().slice(-4),
-      name: currentUser?.name,
-      phone: currentUser?.phone,
-      type: serviceForm.type,
-      address: serviceForm.address,
-      status: 'Menunggu Respon Admin'
-    };
-
     setTimeout(() => {
-      localStorage.setItem('last_request', JSON.stringify(req));
+      let existingStr = localStorage.getItem('elektrik_requests');
+      let requests = existingStr ? JSON.parse(existingStr) : [];
       
-      const existing = localStorage.getItem('elektrik_requests');
-      const requests = existing ? JSON.parse(existing) : [];
-      requests.unshift(req);
+      let finalReq;
+      if (editingRequestId) {
+        requests = requests.map((r: any) => {
+          if (r.id === editingRequestId) {
+            finalReq = { ...r, type: serviceForm.type, address: serviceForm.address };
+            return finalReq;
+          }
+          return r;
+        });
+      } else {
+        finalReq = {
+          id: 'TRX-' + Date.now().toString().slice(-4),
+          name: currentUser?.name,
+          phone: currentUser?.phone,
+          type: serviceForm.type,
+          address: serviceForm.address,
+          status: 'Menunggu Respon Admin'
+        };
+        requests.unshift(finalReq);
+      }
+      
       localStorage.setItem('elektrik_requests', JSON.stringify(requests));
+      localStorage.setItem('last_request', JSON.stringify(finalReq));
 
-      displayToast("Pengajuan Tersimpan!");
-      setActiveTab('calc');
+      displayToast(editingRequestId ? "Pengajuan Diubah!" : "Pengajuan Tersimpan!");
+      setEditingRequestId(null);
+      setServiceForm({ type: 'Perbaikan', address: '' });
       setIsSubmittingService(false);
+      fetchFromRemote();
     }, 800);
   };
 
@@ -152,20 +178,50 @@ export default function App() {
       setActiveTab('service');
       return;
     }
-    const req = JSON.parse(rawReq);
-    const totalCost = `Rp ${(totalKwh * 1500).toLocaleString('id-ID')}`;
-    
-    const msg = `*HALO ADMIN ELEKTRIK*\n` +
-                `--------------------------\n` +
-                `*ID Order:* ${req.id}\n` +
-                `*Klien:* ${req.name}\n` +
-                `*Masalah:* ${req.type}\n` +
-                `*Alamat:* ${req.address}\n` +
-                `*Simulasi Kalkulator:* ${totalCost}\n` +
-                `--------------------------\n` +
-                `Mohon respon pengajuan saya.`;
+    const cost = (deviceData.reduce((acc, item) => acc + ((item.watt * item.hours * 30) / 1000), 0) * 1500).toString();
+    setPaymentForm({...paymentForm, amount: cost});
+    setActiveTab('payment');
+  };
 
-    window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`, '_blank');
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingPayment(true);
+    
+    setTimeout(() => {
+      const rawReq = localStorage.getItem('last_request');
+      if (rawReq) {
+        const req = JSON.parse(rawReq);
+        const existing = localStorage.getItem('elektrik_requests');
+        if (existing) {
+          let requests = JSON.parse(existing);
+          requests = requests.map((r: any) => r.id === req.id ? { ...r, status: 'Menunggu Verifikasi Pembayaran' } : r);
+          localStorage.setItem('elektrik_requests', JSON.stringify(requests));
+          setServiceRequests(requests);
+        }
+        
+        req.status = 'Menunggu Verifikasi Pembayaran';
+        localStorage.setItem('last_request', JSON.stringify(req));
+
+        const totalCost = `Rp ${Number(paymentForm.amount).toLocaleString('id-ID')}`;
+        const msg = `*HALO ADMIN ELEKTRIK*\n` +
+                    `--------------------------\n` +
+                    `*ID Order:* ${req.id}\n` +
+                    `*Klien:* ${req.name}\n` +
+                    `*Masalah:* ${req.type}\n` +
+                    `*Alamat:* ${req.address}\n` +
+                    `*Metode Pembayaran:* ${paymentForm.method.toUpperCase()}\n` +
+                    `*Nama Pengirim:* ${paymentForm.name}\n` +
+                    `*Total yg Dibayar:* ${totalCost}\n` +
+                    `--------------------------\n` +
+                    `Bukti transfer telah dilampirkan via web. Mohon verifikasi.`;
+
+        window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+      displayToast("Detail Pembayaran Berhasil Dikirim!");
+      setIsSubmittingPayment(false);
+      setActiveTab('service'); // redirect back to dashboard
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 1200);
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -212,6 +268,12 @@ export default function App() {
     } else {
       setServiceRequests([]);
     }
+  };
+
+  const handleEditRequest = (req: any) => {
+    setEditingRequestId(req.id);
+    setServiceForm({ type: req.type, address: req.address });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const totalKwh = deviceData.reduce((acc, item) => acc + ((item.watt * item.hours * 30) / 1000), 0);
@@ -265,6 +327,7 @@ export default function App() {
             )}
             <button onClick={() => currentUser && setActiveTab('service')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'service' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>2. Pengajuan</button>
             <button onClick={() => currentUser && setActiveTab('calc')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'calc' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>3. Cek Harga</button>
+            <button onClick={() => currentUser && setActiveTab('payment')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors ${!currentUser ? 'grayscale opacity-50 pointer-events-none' : 'hover:text-slate-600'} ${activeTab === 'payment' ? 'border-b-[3px] border-yellow-500 text-yellow-600' : ''}`}>4. Bayar</button>
             {isAdmin && (
               <button onClick={() => setActiveTab('history')} className={`py-4 md:py-5 px-3 md:px-4 whitespace-nowrap transition-colors text-red-500 hover:text-red-700 ${activeTab === 'history' ? 'border-b-[3px] border-red-500 text-red-600' : ''}`}>Admin Panel</button>
             )}
@@ -322,10 +385,52 @@ export default function App() {
                           <textarea rows={3} required value={serviceForm.address} onChange={e => setServiceForm({...serviceForm, address: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-300 focus:-translate-y-1 focus:shadow-md" placeholder="Jl. Nama Jalan, No Rumah, RT/RW..."></textarea>
                       </div>
                       <button type="submit" disabled={isSubmittingService} className="w-full bg-slate-900 overflow-hidden text-white font-black py-5 rounded-3xl shadow-xl flex justify-center items-center gap-3 text-lg disabled:opacity-70 transition-all hover:bg-slate-800">
-                          {isSubmittingService ? <><Loader2 className="animate-spin h-5 w-5" /> MENYIMPAN...</> : <>LANJUT KE CEK HARGA <ArrowRight className="h-5 w-5" /></>}
+                          {isSubmittingService ? <><Loader2 className="animate-spin h-5 w-5" /> MENYIMPAN...</> : (editingRequestId ? <>SIMPAN PERUBAHAN</> : <>LANJUT KE CEK HARGA <ArrowRight className="h-5 w-5" /></>)}
                       </button>
+                      {editingRequestId && (
+                        <button type="button" onClick={() => { setEditingRequestId(null); setServiceForm({ type: 'Perbaikan', address: '' }); }} className="w-full text-slate-500 font-bold py-2 hover:text-slate-700 transition">
+                            BATAL EDIT
+                        </button>
+                      )}
                   </form>
               </div>
+
+              {/* User's Service Requests list */}
+              {serviceRequests.filter(r => r.phone === currentUser?.phone).length > 0 && (
+                <div className="mt-8">
+                    <h3 className="text-lg font-black text-slate-800 mb-4 px-2">Riwayat Pengajuan Anda</h3>
+                    <div className="space-y-4">
+                        {serviceRequests.filter(r => r.phone === currentUser?.phone).map(r => (
+                          <div key={r.id} className="glass p-5 rounded-3xl relative overflow-hidden group">
+                              <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{r.id}</span>
+                                      <h4 className="font-black text-slate-800 text-sm mt-1">{r.type}</h4>
+                                  </div>
+                                  <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${r.status.includes('Selesai') ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{r.status}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 mb-4 bg-white/50 p-2 rounded-xl border border-slate-100/50">{r.address}</p>
+                              
+                              <div className="flex gap-2 justify-end">
+                                  {r.status !== 'Selesai' && (
+                                    <>
+                                        <button onClick={() => handleEditRequest(r)} className="flex items-center gap-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 transition px-3 py-1.5 rounded-lg text-[10px] font-bold">
+                                            <Pencil className="h-3.5 w-3.5" /> Edit
+                                        </button>
+                                        <button onClick={() => deleteRequest(r.id)} className="flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition px-3 py-1.5 rounded-lg text-[10px] font-bold">
+                                            <Trash2 className="h-3.5 w-3.5" /> Hapus
+                                        </button>
+                                    </>
+                                  )}
+                                  <button onClick={() => setActiveTab('calc')} className="flex items-center gap-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 transition px-3 py-1.5 rounded-lg text-[10px] font-bold ml-auto">
+                                      <Eye className="h-3.5 w-3.5" /> Lihat Kalkulasi
+                                  </button>
+                              </div>
+                          </div>
+                        ))}
+                    </div>
+                </div>
+              )}
           </section>
         )}
 
@@ -349,7 +454,7 @@ export default function App() {
                       <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest">Total Estimasi</p>
                               <h3 className="text-3xl md:text-4xl font-black text-yellow-400 mt-1 break-words">Rp {(totalKwh * 1500).toLocaleString('id-ID')}</h3>
                       <div className="mt-6 pt-6 border-t border-slate-800">
-                          <button onClick={finishOrder} className="w-full bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-black text-[11px] md:text-xs uppercase tracking-wider md:tracking-widest transition">Konfirmasi & Hubungi Admin</button>
+                          <button onClick={finishOrder} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-black text-[11px] md:text-xs uppercase tracking-wider md:tracking-widest transition flex justify-center items-center gap-2">LANJUT KE PEMBAYARAN <ArrowRight className="h-4 w-4" /></button>
                       </div>
                   </div>
               </div>
@@ -386,6 +491,81 @@ export default function App() {
                         </div>
                       )}
                   </div>
+              </div>
+          </section>
+        )}
+
+        {/* Step 4: Payment */}
+        {activeTab === 'payment' && (
+          <section className="max-w-3xl mx-auto py-2 sm:py-6 scale-up w-full">
+              <div className="glass p-6 sm:p-8 md:p-10 rounded-[2.5rem]">
+                  <div className="flex justify-between items-start mb-6 md:mb-8">
+                      <div>
+                          <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Pembayaran Online</h2>
+                          <p className="text-slate-500 text-xs md:text-sm mt-1">Pilih metode pembayaran dan unggah bukti transfer.</p>
+                      </div>
+                      <Wallet className="h-8 w-8 md:h-10 md:w-10 text-yellow-500 opacity-20 flex-shrink-0 ml-4" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
+                      {['qris', 'bca', 'bri', 'btn', 'dana'].map(method => (
+                        <button key={method} onClick={() => setPaymentForm({...paymentForm, method})} className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border-2 transition-all ${paymentForm.method === method ? 'border-yellow-500 bg-yellow-50 text-yellow-700 shadow-md transform scale-105' : 'border-slate-100 bg-white text-slate-400 hover:border-yellow-200'}`}>
+                            {method === 'qris' ? <QrCode className="h-6 w-6" /> : (method === 'dana' ? <Wallet className="h-6 w-6" /> : <Landmark className="h-6 w-6" />)}
+                            <span className="text-[10px] font-bold uppercase">{method}</span>
+                        </button>
+                      ))}
+                  </div>
+
+                  <div className="bg-slate-100 p-6 rounded-3xl mb-8 flex flex-col sm:flex-row items-center gap-6">
+                      <div className="flex-1 w-full">
+                          <h3 className="text-sm font-black text-slate-800 mb-2 uppercase">Instruksi Transfer</h3>
+                          {paymentForm.method === 'qris' ? (
+                            <p className="text-xs text-slate-600 leading-relaxed">Silahkan Scan QRIS yang tampil di sisi kanan menggunakan m-Banking atau e-Wallet kesayangan Anda.</p>
+                          ) : (
+                            <div className="space-y-2">
+                                <p className="text-xs text-slate-600">Transfer ke Rekening {paymentForm.method.toUpperCase()}:</p>
+                                <div className="bg-white p-3 rounded-xl border border-slate-200 font-mono text-lg font-black tracking-widest text-slate-800">
+                                    {paymentForm.method === 'bca' && '1234 5678 90'}
+                                    {paymentForm.method === 'bri' && '0987 6543 21'}
+                                    {paymentForm.method === 'btn' && '1122 3344 55'}
+                                    {paymentForm.method === 'dana' && '0812 3456 7890'}
+                                </div>
+                                <p className="text-xs font-bold text-slate-500 uppercase">A.N ELEKTRIK SERVICES</p>
+                            </div>
+                          )}
+                          <div className="mt-4 pt-4 border-t border-slate-200">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Total Tagihan:</p>
+                              <p className="text-2xl font-black text-yellow-600">Rp {Number(paymentForm.amount).toLocaleString('id-ID')}</p>
+                          </div>
+                      </div>
+                      {paymentForm.method === 'qris' && (
+                          <div className="w-32 h-32 md:w-40 md:h-40 bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex items-center justify-center shrink-0">
+                              <QrCode className="h-full w-full text-slate-800" />
+                          </div>
+                      )}
+                  </div>
+
+                  <form onSubmit={handlePaymentSubmit} className="space-y-6">
+                      <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Nama Rekening/Pengirim</label>
+                          <input type="text" required value={paymentForm.name} onChange={e => setPaymentForm({...paymentForm, name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-300 focus:-translate-y-1 focus:shadow-md" placeholder="AN JOHN DOE" />
+                      </div>
+                      
+                      <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Unggah Bukti Transfer</label>
+                          <label className="w-full p-4 bg-slate-50 border border-dashed border-slate-300 rounded-2xl outline-none focus-within:ring-2 focus-within:ring-yellow-400 transition-all cursor-pointer flex items-center gap-3 hover:bg-slate-100">
+                              <UploadCloud className="h-6 w-6 text-slate-400" />
+                              <div className="flex-1 overflow-hidden">
+                                  <span className="text-sm text-slate-600 block truncate">{paymentForm.fileName ? paymentForm.fileName : 'Pilih file/gambar bukti transfer...'}</span>
+                              </div>
+                              <input type="file" required accept="image/*" className="hidden" onChange={e => setPaymentForm({...paymentForm, fileName: e.target.files?.[0]?.name || ''})} />
+                          </label>
+                      </div>
+
+                      <button type="submit" disabled={isSubmittingPayment} className="w-full bg-slate-900 overflow-hidden text-white font-black py-5 rounded-3xl shadow-xl flex justify-center items-center gap-3 text-lg disabled:opacity-70 transition-all hover:bg-slate-800">
+                          {isSubmittingPayment ? <><Loader2 className="animate-spin h-5 w-5" /> MENGIRIM DATA...</> : <>KIRIM BUKTI PEMBAYARAN <CreditCard className="h-5 w-5" /></>}
+                      </button>
+                  </form>
               </div>
           </section>
         )}
