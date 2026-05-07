@@ -15,7 +15,8 @@ import {
   Laptop,
   Wrench,
   Plug,
-  Cable
+  Cable,
+  Bell
 } from 'lucide-react';
 
 const ADMIN_WA = "6289670924182";
@@ -185,6 +186,7 @@ export default function App() {
   };
 
   const totalKwh = deviceData.reduce((acc, item) => acc + ((item.watt * item.hours * 30) / 1000), 0);
+  const pendingCount = (isAdmin && serviceRequests.length > 0) ? serviceRequests.length : (localStorage.getItem('last_request') ? 1 : 0);
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans text-slate-800 selection:bg-yellow-200 flex flex-col">
@@ -201,19 +203,29 @@ export default function App() {
               </h1>
             </div>
             
-            {currentUser && (
-              <div className="flex items-center gap-2 md:gap-3">
-                  <div className="text-right hidden sm:block">
-                      <p className="text-xs font-black uppercase leading-none">{currentUser.name}</p>
-                      <p className="text-[9px] opacity-80">Pelanggan Terverifikasi</p>
-                  </div>
-                  <button onClick={handleLogout} className="bg-yellow-600 p-2 md:p-2.5 rounded-lg hover:bg-yellow-700 transition" aria-label="Logout">
-                      <LogOut className="h-4 w-4 md:h-5 md:w-5" />
-                  </button>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {pendingCount > 0 && (
+                <button onClick={() => { if (isAdmin) { setActiveTab('history'); } }} className="relative p-2 md:p-2.5 rounded-lg hover:bg-yellow-600 transition" aria-label="Notifications">
+                    <Bell className="h-5 w-5 md:h-6 md:w-6" />
+                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-yellow-500">
+                        {pendingCount}
+                    </span>
+                </button>
+              )}
+              {currentUser && (
+                <div className="flex items-center gap-2 md:gap-3">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-xs font-black uppercase leading-none">{currentUser.name}</p>
+                        <p className="text-[9px] opacity-80">Pelanggan Terverifikasi</p>
+                    </div>
+                    <button onClick={handleLogout} className="bg-yellow-600 p-2 md:p-2.5 rounded-lg hover:bg-yellow-700 transition" aria-label="Logout">
+                        <LogOut className="h-4 w-4 md:h-5 md:w-5" />
+                    </button>
+                </div>
+              )}
+            </div>
             
-            {isAdmin && <div className="bg-red-600 px-2 py-1 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold animate-pulse">ADMIN MODE</div>}
+            {isAdmin && <div className="bg-red-600 px-2 py-1 md:px-3 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold animate-pulse absolute left-1/2 -translate-x-1/2">ADMIN</div>}
         </div>
       </nav>
 
